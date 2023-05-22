@@ -1,0 +1,523 @@
+---
+  title: "Untitled"
+date: "2023-04-05"
+output: html_document
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(quantmod)
+library(TSclust)
+
+# Download the stocks
+energy_stocks <- c("ACI", "AEM", "BTU", "CNQ", "CNX", "HAL", "NOV", "OXY", "PEO", "SLB")
+banking_stocks <- c("BAC", "BNS", "C", "CM", "CS", "DB", "FITB", "HDB", "IBM", "MS", "PNC", "RY", "WFC")
+healthcare_stocks <- c("ABT", "JNJ", "LLY", "PFE", "AMGN", "AZN", "BAX", "BMY", "GSK", "NVO", "RHHBY", "SNY", "MTEX")
+
+start_date <- "2010-01-01"
+end_date <- Sys.Date()
+
+```
+
+
+```{r}
+# Energy stocks
+energy_prices <- NULL
+for (stock in energy_stocks) {
+  # Download the stock data
+  stock_data <- getSymbols(stock, from = start_date, to = end_date, auto.assign = FALSE)
+  
+  # Extract the adjusted closing prices
+  stock_prices <- Ad(stock_data)
+  
+  # Combine the prices into a single data frame
+  if (is.null(energy_prices)) {
+    energy_prices <- stock_prices
+  } else {
+    energy_prices <- merge(energy_prices, stock_prices)
+  }
+}
+```
+
+
+# Time series Plots each stock in the Energy sector
+
+These are plots showing the movemment of the  investments in the respective indices in the energy price stocks. This helps in choosing the stocks to pick in the selecction strategy by looking for the indice with the greatest return over the time
+
+```{r}
+plot(energy_prices, type = "l", lwd = 2,
+     xlab = "Testing(In sample): From Jan.1 2001 -- Dec.31 2005",
+     ylab = "Total Account: Initial Investment and Realized Profit/Lost",
+     main = " Energy prices")
+legend("topright", legend = "Account Balance")
+```
+Achat series is a plot showing the price movement of the stock over time
+
+```{r, message=FALSE, warning=FALSE}
+library(quantmod)
+chartSeries(energy_prices, name = "Energy Prices")
+
+```
+
+```{r}
+# Banking stocks
+banking_prices <- NULL
+for (stock in banking_stocks) {
+  # Download the stock data
+  stock_data <- getSymbols(stock, from = start_date, to = end_date, auto.assign = FALSE)
+  
+  # Extract the adjusted closing prices
+  stock_prices <- Ad(stock_data)
+  
+  # Combine the prices into a single data frame
+  if (is.null(banking_prices)) {
+    banking_prices <- stock_prices
+  } else {
+    banking_prices <- merge(banking_prices, stock_prices)
+  }
+}
+```
+
+
+```{r}
+plot(banking_prices, type = "l", lwd = 2,
+     xlab = "Testing(In sample): From Jan.1 2001 -- Dec.31 2005",
+     ylab = "Total Account: Initial Investment and Realized Profit/Lost",
+     main = " Banking_prices ")
+legend("topright", legend = "Account Balance")
+```
+
+
+```{r}
+library(quantmod)
+chartSeries(energy_prices, name = "banking_prices ")
+```
+
+```{r}
+# Healthcare stocks
+health_prices <- NULL
+for (stock in healthcare_stocks) {
+  # Download the stock data
+  stock_data <- getSymbols(stock, from = start_date, to = end_date, auto.assign = FALSE)
+  
+  # Extract the adjusted closing prices
+  stock_prices <- Ad(stock_data)
+  
+  # Combine the prices into a single data frame
+  if (is.null(health_prices)) {
+    health_prices <- stock_prices
+  } else {
+    health_prices <- merge(health_prices, stock_prices)
+  }
+}
+```
+
+
+```{r, message=FALSE, warning=FALSE}
+plot(health_prices, type = "l", lwd = 2,
+     xlab = "Testing(In sample): From Jan.1 2001 -- Dec.31 2005",
+     ylab = "Total Account: Initial Investment and Realized Profit/Lost",
+     main = "Healthcare Prices")
+legend("topright", legend = "Account Balance")
+```
+
+
+```{r}
+library(quantmod)
+chartSeries(health_prices, name = "banking_prices")
+```
+
+Log returns of the stocks are preferred to the actual returns because they help to make the data stationary, are often normally distributed, have a more intuitive interpretation, and can be added over time. T
+
+#Energy stocks log returns
+
+```{r, message=FALSE, warning=FALSE}
+energy_stocks <- as.numeric(energy_stocks)
+# Create a vector of log returns from the Healthcare_prices dataset
+log_returns_energy <- diff(log(energy_prices))
+
+# Set initial values for the OU model parameters
+phi <- 0.95
+sigma <- 0.05
+mu <- mean(log_returns_energy)
+
+# Define the negative log-likelihood function for the OU model
+ou_loglik <- function(params, y) {
+  phi <- params[1]
+  sigma <- params[2]
+  mu <- params[3]
+  n <- length(y)
+  sum(log(1/(sqrt(2*pi)*sigma)) - (y[2:n] - mu - phi*(y[1:(n-1)] - mu))^2/(2*sigma^2))
+}
+# Generate a time series of simulated log returns from the fitted OU model
+set.seed(123)
+n_sim <- length(log_returns_energy)
+sim_returns <- numeric(n_sim)
+sim_returns[1] <- log_returns_energy[1]
+for (i in 2:n_sim) {
+  sim_returns[i] <- mu + phi*(sim_returns[i-1] - mu) + rnorm(1, sd = sigma)
+}
+```
+
+#Banking sector stocks log returns
+
+```{r, message=FALSE, warning=FALSE}
+banking_stocks <- as.numeric(banking_stocks)
+# Create a vector of log returns from the Healthcare_prices dataset
+log_returns_bannking <- diff(log(banking_prices))
+
+# Set initial values for the OU model parameters
+phi <- 0.95
+sigma <- 0.05
+mu <- mean(log_returns_bannking)
+
+# Define the negative log-likelihood function for the OU model
+ou_loglik <- function(params, y) {
+  phi <- params[1]
+  sigma <- params[2]
+  mu <- params[3]
+  n <- length(y)
+  sum(log(1/(sqrt(2*pi)*sigma)) - (y[2:n] - mu - phi*(y[1:(n-1)] - mu))^2/(2*sigma^2))
+}
+# Generate a time series of simulated log returns from the fitted OU model
+set.seed(123)
+n_sim <- length(log_returns_bannking)
+sim_returns <- numeric(n_sim)
+sim_returns[1] <- log_returns_bannking[1]
+for (i in 2:n_sim) {
+  sim_returns[i] <- mu + phi*(sim_returns[i-1] - mu) + rnorm(1, sd = sigma)
+}
+```
+
+#Health care stocks log returns
+
+```{r, message=FALSE, warning=FALSE}
+healthcare_stocks <- as.numeric(healthcare_stocks)
+
+# Create a vector of log returns from the Healthcare_prices dataset
+log_returns_healthcare <- diff(log(healthcare_stocks))
+
+# Set initial values for the OU model parameters
+phi <- 0.95
+sigma <- 0.05
+mu <- mean(log_returns_healthcare)
+
+# Define the negative log-likelihood function for the OU model
+ou_loglik <- function(params, y) {
+  phi <- params[1]
+  sigma <- params[2]
+  mu <- params[3]
+  n <- length(y)
+  sum(log(1/(sqrt(2*pi)*sigma)) - (y[2:n] - mu - phi*(y[1:(n-1)] - mu))^2/(2*sigma^2))
+}
+# Generate a time series of simulated log returns from the fitted OU model
+set.seed(123)
+n_sim <- length(log_returns_healthcare)
+sim_returns <- numeric(n_sim)
+sim_returns[1] <- log_returns_healthcare[1]
+for (i in 2:n_sim) {
+  sim_returns[i] <- mu + phi*(sim_returns[i-1] - mu) + rnorm(1, sd = sigma)
+}
+```
+
+#pairs selection
+
+```{r, warning=FALSE, message=FALSE}
+# Combine all stock prices into a single data frame
+stock_prices <- merge(energy_prices, health_prices, banking_prices)
+
+# Calculate daily returns
+stock_returns <- na.omit(dailyReturn(stock_prices))
+
+library(dtw)
+# Calculate distance matrix using dynamic time warping
+dtw_result <- dtw(stock_returns, keep = TRUE)
+if (is.null(dtw_result$distanceMatrix)) {
+  print("Distance matrix is empty.")
+} else {
+  distance_matrix <- as.matrix(dtw_result$distanceMatrix)
+  
+  
+  # Apply test to select pairs
+  distance_matrix_test <- apply(distance_matrix, 2, function(x) sum(x > quantile(x[!is.na(x)], 0.95)) > 1)
+  candidate_pairs <- colnames(stock_returns)[distance_matrix_test]
+  
+  # Apply Augmented Dickey-Fuller (ADF) test to select cointegrated pairs
+  adf_test_results <- apply(stock_returns[, candidate_pairs], 2, function(x) adf.test(x)$p.value)
+  adf_test_results <- na.omit(adf_test_results) # Remove any missing values
+  cointegrated_pairs <- candidate_pairs[adf_test_results < 0.05]
+  
+  
+  # Apply Granger causality test to select causal pairs
+  causal_pairs <- apply(stock_returns[, cointegrated_pairs], 2, function(x) {
+    gc_result <- grangertest(x[, 1], x[, 2])
+    gc_result$p.value < 0.05 && gc_result$statistic["Pr(>F)"] < 0.05
+  })
+  causal_pairs <- colnames(stock_returns)[cointegrated_pairs][causal_pairs]
+  
+  # Print final list of pairs
+  print(paste("Number of pairs selected:", length(causal_pairs)))
+  print(causal_pairs)
+}
+
+```
+
+The distance matrix is empty which means that there are no valid pairs that passed the distance matrix test, the ADF test, and the Granger causality test. This implies that the data does not contain enough information to create valid pairs for the selection using the above three approaches. Therfore the Test for cointegration using the ADF test was applied in selection of the pairs.
+
+```{r, message=FALSE, warning=FALSE}
+library(tseries)
+library(xts)
+library(quantmod)
+
+# Define the list of stocks
+energy_stocks <- c("ACI", "AEM", "BTU", "CNQ", "CNX", "HAL", "NOV", "OXY", "PEO", "SLB")
+banking_stocks <- c("BAC", "BNS", "C", "CM", "CS", "DB", "FITB", "HDB", "IBM", "MS", "PNC", "RY", "WFC")
+healthcare_stocks <- c("ABT", "JNJ", "LLY", "PFE", "AMGN", "AZN", "BAX", "BMY", "GSK", "NVO", "RHHBY", "SNY", "MTEX")
+
+stocks <- c(energy_stocks, banking_stocks, healthcare_stocks)
+
+# Define the date range for the stock data
+start_date <- "2015-01-01"
+end_date <- Sys.Date()
+
+# Initialize the list of trading pairs
+trading_pairs <- list()
+
+# Loop through all pairs of stocks
+for (i in 1:(length(stocks)-1)) {
+  for (j in (i+1):length(stocks)) {
+    # Download the stock data
+    stock1_data <- getSymbols(stocks[i], from = start_date, to = end_date, auto.assign = FALSE)
+    stock2_data <- getSymbols(stocks[j], from = start_date, to = end_date, auto.assign = FALSE)
+    
+    # Extract the adjusted closing prices
+    stock1_prices <- Ad(stock1_data)
+    stock2_prices <- Ad(stock2_data)
+    
+    # Combine the prices into a single data frame
+    stock_prices <- merge(stock1_prices, stock2_prices)
+    
+    # Remove missing values
+    stock_prices <- na.omit(stock_prices)
+    
+    # Test for cointegration using the ADF test
+    adf_result <- adf.test(as.numeric(stock_prices[, 1] - stock_prices[, 2]), alternative = "stationary")
+    p_value <- adf_result$p.value
+    if (p_value < 0.05) {
+      cat("Found cointegrated pair:", stocks[i], "and", stocks[j], "\n")
+      trading_pairs[[paste(stocks[i], stocks[j], sep = "_")]] <- stock_prices
+    }
+  }
+}
+
+```
+#Trading Algorithim strategy
+
+This is like  a "bot" that identifies the appropriate selected pairs from above and implements the suitable trade frmom the pair
+
+
+```{r}
+# Define trading strategy
+trading_strategy <- function(pair_prices) {
+  # Compute the spread between the two stocks
+  spread <- pair_prices[, 1] - pair_prices[, 2]
+  
+  # Compute the rolling mean and standard deviation of the spread
+  spread_mean <- SMA(spread, n = 20)
+  spread_sd <- sd(spread)
+  
+  # Compute the z-score of the spread
+  z_score <- (spread - spread_mean) / spread_sd
+  
+  # Compute the buy and sell signals
+  buy_signal <- z_score < -2
+  sell_signal <- z_score > 2
+  
+  # Create a data frame with the trading signals
+  signals <- data.frame(Buy = buy_signal, Sell = sell_signal)
+  
+  # Combine the trading signals with the original price data
+  trades <- cbind(pair_prices, signals)
+  
+  # Initialize the trading position and the portfolio value
+  position <- 0
+  portfolio_value <- 0
+  
+  # Loop over the trading days
+  for (i in 1:nrow(trades)) {
+    # Check if we have a buy signal
+    if (trades[i, "Buy"]) {
+      # Buy the first stock and sell the second stock
+      position <- 1
+      portfolio_value <- portfolio_value - trades[i, 1] + trades[i, 2]
+    }
+    # Check if we have a sell signal
+    else if (trades[i, "Sell"]) {
+      # Sell the first stock and buy the second stock
+      position <- -1
+      portfolio_value <- portfolio_value + trades[i, 1] - trades[i, 2]
+    }
+    # Otherwise, hold the position
+    else {
+      portfolio_value <- portfolio_value + position * (trades[i, 1] - trades[i, 2])
+    }
+  }
+  
+  # Return the final portfolio value
+  return(portfolio_value)
+}
+
+# Loop over the trading pairs
+for (pair_name in names(trading_pairs)) {
+  # Get the price data for the pair
+  pair_prices <- trading_pairs[[pair_name]]
+  
+  # Run the trading strategy on the pair
+  pair_value <- trading_strategy(pair_prices)
+  
+  # Print the result
+  cat("Pair", pair_name, "generated a profit of", pair_value, "\n")
+}
+
+```
+
+```{r}
+generate_trading_signals <- function(prices, trading_pairs, window_size = 60, threshold = 1.5) {
+  signals <- matrix(0, nrow = nrow(prices), ncol = length(trading_pairs))
+  colnames(signals) <- paste(trading_pairs[[1]], trading_pairs[[2]], sep = "_")
+  
+  for (i in window_size:nrow(prices)) {
+    # Get the prices for the current window
+    prices_window <- prices[(i - window_size + 1):i, ]
+    
+    # Calculate the returns for each stock
+    returns <- diff(log(prices_window))
+    
+    # Loop through the trading pairs
+    for (j in 1:length(trading_pairs)) {
+      pair <- trading_pairs[[j]]
+      
+      # Get the prices for the current pair
+      prices_pair <- prices_window[, pair]
+      
+      # Calculate the spread
+      spread <- prices_pair[,1] - prices_pair[,2]
+      
+      # Perform the ADF test on the spread
+      adf_test <- ur.df(spread, type = "drift", selectlags = "AIC")
+      if (summary(adf_test)@test$p.value < 0.05) {
+        # If the spread is stationary, calculate the z-score
+        mu <- mean(spread)
+        sigma <- sd(spread)
+        z_score <- (spread[length(spread)] - mu) / sigma
+        
+        # Check if the z-score exceeds the threshold
+        if (z_score > threshold) {
+          signals[i, j] <- -1  # Short the pair
+        } else if (z_score < -threshold) {
+          signals[i, j] <- 1  # Long the pair
+        }
+      }
+    }
+  }
+  
+  return(signals)
+}
+
+```
+
+# Ornstein-Uhlenbeck (OU) and estimation
+
+
+```{r, warning=FALSE,  message=FALSE}
+library(LSTS)
+library(stochvol)
+library(mvtnorm)
+
+
+# Create a vector of log returns from the Energy_prices dataset
+log_returns_energy <- diff(log(energy_prices))
+
+# Set initial values for the OU model parameters
+phi <- 0.95
+sigma <- 0.05
+mu <- mean(log_returns_energy)
+
+# Define the negative log-likelihood function for the OU model
+ou_loglik <- function(params, y) {
+  phi <- params[1]
+  sigma <- params[2]
+  mu <- params[3]
+  n <- length(y)
+  sum(log(1/(sqrt(2*pi)*sigma)) - (y[2:n] - mu - phi*(y[1:(n-1)] - mu))^2/(2*sigma^2))
+}
+
+
+# Generate a time series of simulated log returns from the fitted OU model
+set.seed(123)
+n_sim <- length(log_returns_energy)
+sim_returns <- numeric(n_sim)
+sim_returns[1] <- log_returns_energy[1]
+for (i in 2:n_sim) {
+  sim_returns[i] <- mu + phi*(sim_returns[i-1] - mu) + rnorm(1, sd = sigma)
+  
+}
+```
+
+To perform backtesting optimization of the parameters of the model, we need to specify the model we want to optimize and define the optimization criteria.
+
+```{r, message=FALSE, warning=FALSE}
+# Load the required packages
+library(quantmod)
+library(PerformanceAnalytics)
+
+# Define sma_model function with univariate input
+sma_model <- function(x, n) {
+  if (ncol(x) > 1) {
+    return(NaN)
+  }
+  
+  # Compute the SMA using the rolling window size
+  sma <- runSum(x, n) / n
+  
+  # Compute the trading signal based on the SMA
+  signal <- ifelse(x > sma, 1, -1)
+  
+  # Compute the daily returns
+  returns <- na.omit(periodReturn(x, type = "arithmetic") * signal)
+  
+  # Compute the Sharpe ratio
+  sharpe <- SharpeRatio.annualized(returns)
+  
+  return(sharpe)
+}
+
+# Define window sizes
+window_sizes <- c(40, 120)
+
+# Initialize results matrix
+results <- matrix(nrow = length(window_sizes), ncol = 2)
+colnames(results) <- c("window_size", "sharpe")
+
+# Loop over the window sizes and compute the Sharpe ratio for each window
+for (i in 1:length(window_sizes)) {
+  sharpe <- sma_model(energy_prices[, 1], window_sizes[i])
+  results[i, ] <- c(window_sizes[i], sharpe)
+}
+
+# Find the window size that maximizes the Sharpe ratio
+max_sharpe <- max(results[, 2], na.rm = TRUE)
+optimal_window <- results[which(results[, 2] == max_sharpe), 1]
+print(optimal_window)
+
+```
+
+
+
+
+
+
+
